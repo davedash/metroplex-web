@@ -1,9 +1,12 @@
 package main
 
 import (
-	"html/template"
 	"fmt"
+	"html/template"
 	"net/http"
+	"os"
+
+	"github.com/gorilla/handlers"
 )
 
 type Node struct {
@@ -12,8 +15,8 @@ type Node struct {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	if (r.URL.Path != "/") {
-	  errorHandler(w, r, http.StatusNotFound)
+	if r.URL.Path != "/" {
+		errorHandler(w, r, http.StatusNotFound)
 		return
 	}
 	t, _ := template.ParseFiles("templates/home.html")
@@ -22,12 +25,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/static/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, r.URL.Path[1:])
+	})
+	http.ListenAndServe(":8080", handlers.LoggingHandler(os.Stderr, http.DefaultServeMux))
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
-    w.WriteHeader(status)
-    if status == http.StatusNotFound {
-        fmt.Fprint(w, "custom 404")
-    }
+	w.WriteHeader(status)
+	if status == http.StatusNotFound {
+		fmt.Fprint(w, "custom 404")
+	}
 }
